@@ -9,14 +9,15 @@ package data
 // Readings returned will all inherit from BaseReading but their concrete types will be either SimpleReading or BinaryReading,
 // potentially interleaved in the APIv2 specification.
 type BaseReading struct {
-	Id          string `json:"id,omitempty" codec:"id,omitempty"`
-	Pushed      int64  `json:"pushed,omitempty" codec:"pushed,omitempty"`   // When the data was pushed out of EdgeX (0 - not pushed yet)
-	Created     int64  `json:"created,omitempty" codec:"created,omitempty"` // When the reading was created
-	Origin      int64  `json:"origin,omitempty" codec:"origin,omitempty"`
-	Modified    int64  `json:"modified,omitempty" codec:"modified,omitempty"`
-	Device      string `json:"device,omitempty" codec:"device,omitempty"`
-	Name        string `json:"name,omitempty" codec:"name,omitempty"`
-	isValidated bool   // internal member used for validation check
+	Id          string   `json:"id,omitempty" codec:"id,omitempty"`
+	Pushed      int64    `json:"pushed,omitempty" codec:"pushed,omitempty"`   // When the data was pushed out of EdgeX (0 - not pushed yet)
+	Created     int64    `json:"created,omitempty" codec:"created,omitempty"` // When the reading was created
+	Origin      int64    `json:"origin,omitempty" codec:"origin,omitempty"`
+	Modified    int64    `json:"modified,omitempty" codec:"modified,omitempty"`
+	Device      string   `json:"device,omitempty" codec:"device,omitempty"`
+	Name        string   `json:"name,omitempty" codec:"name,omitempty"`
+	Labels      []string `json:"labels,omitempty" codec:"labels,omitempty"` // Custom labels assigned to a reading, added in the APIv2 specification.
+	isValidated bool     // internal member used for validation check
 }
 
 // An event reading for a binary data type
