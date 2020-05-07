@@ -8,13 +8,10 @@ package common
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/edgexfoundry/edgex-go/internal/core/data/config"
-	"github.com/edgexfoundry/edgex-go/internal/pkg/v2/correlation/models/core/data"
-	dtos "github.com/edgexfoundry/edgex-go/internal/pkg/v2/dtos/coredata"
-	"github.com/edgexfoundry/edgex-go/internal/pkg/v2/handler/http/mapper"
+	dto "github.com/edgexfoundry/edgex-go/internal/pkg/v2/go-mod/dtos/coredata"
+	model "github.com/edgexfoundry/edgex-go/internal/pkg/v2/go-mod/models/coredata"
 	"github.com/edgexfoundry/go-mod-core-contracts/clients"
-	"gopkg.in/dealancer/validate.v2"
 	"io"
 	"net/http"
 	"strings"
@@ -25,29 +22,20 @@ type jsonReader struct{}
 
 // EventReader unmarshals a request body into an Event type
 type EventReader interface {
-	//Read(reader io.Reader, ctx *context.Context) (data.Event, error)
-	Read(reader io.Reader, ctx *context.Context) (data.Event, error)
+	Read(reader io.Reader, ctx *context.Context) ([]model.Event, error)
 }
 
 // Read reads and converts the request's JSON event data into an Event struct
-//func (jsonReader) Read(reader io.Reader, ctx *context.Context) (data.Event, error) {
-func (jsonReader) Read(reader io.Reader, ctx *context.Context) (event data.Event, err error) {
+func (jsonReader) Read(reader io.Reader, ctx *context.Context) (events []model.Event, err error) {
 	c := context.WithValue(*ctx, clients.ContentType, clients.ContentTypeJSON)
 	*ctx = c
-	addEventDTO := dtos.AddEventRequest{}
-	err = json.NewDecoder(reader).Decode(&addEventDTO)
+	var addEvents []dto.AddEventRequest
+	err = json.NewDecoder(reader).Decode(&addEvents)
 	if err != nil {
-		return event, err
+		return events, err
 	}
-	if err := validate.Validate(addEventDTO); err != nil {
-		fmt.Println(err) // Prints "Field must not be empty"
-		return event, err
-	}
-	event = mapper.ToEventContract(addEventDTO)
-	if err != nil {
-		return event, err
-	}
-	return event, nil
+	events = dto.ToEventModels(addEvents)
+	return events, nil
 }
 
 // NewJsonReader creates a new instance of cborReader.

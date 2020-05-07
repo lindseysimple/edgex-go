@@ -35,9 +35,10 @@ const (
 	NAMES          = "names"
 	DEVICE         = "device"
 	USAGE          = "usage"
+	ALL            = "all"
 )
 
 // Constants related to defined routes in the V2 APIs
 const (
-	ApiV2EventRoute              = "/api/v2/event"
+	ApiV2EventRoute = "/api/v2/event"
 )

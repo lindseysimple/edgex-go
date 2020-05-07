@@ -254,9 +254,53 @@ func loadRestRoutes(r *mux.Router, dic *di.Container) {
 	e = r.PathPrefix(ApiV2EventRoute).Subrouter()
 
 	e.HandleFunc(
+		"/"+ALL,
+		func(w http.ResponseWriter, r *http.Request) {
+			data.V2GetAllEventHandler(
+				w,
+				r,
+				bootstrapContainer.LoggingClientFrom(dic.Get),
+				v2Container.DBClientFrom(dic.Get),
+				errorContainer.ErrorHandlerFrom(dic.Get))
+		}).Methods(http.MethodGet)
+
+	e.HandleFunc(
 		"/"+ID+"/{"+ID+"}",
 		func(w http.ResponseWriter, r *http.Request) {
 			data.V2GetEventByIdHandler(
+				w,
+				r,
+				bootstrapContainer.LoggingClientFrom(dic.Get),
+				v2Container.DBClientFrom(dic.Get),
+				errorContainer.ErrorHandlerFrom(dic.Get))
+		}).Methods(http.MethodGet)
+
+	e.HandleFunc(
+		"/"+COUNT,
+		func(w http.ResponseWriter, r *http.Request) {
+			data.V2GetEventCountHandler(
+				w,
+				r,
+				bootstrapContainer.LoggingClientFrom(dic.Get),
+				v2Container.DBClientFrom(dic.Get),
+				errorContainer.ErrorHandlerFrom(dic.Get))
+		}).Methods(http.MethodGet)
+
+	e.HandleFunc(
+		"/"+COUNT+"/"+DEVICE+"/{"+DEVICEID_PARAM+"}",
+		func(w http.ResponseWriter, r *http.Request) {
+			data.V2GetEventCountByDeviceIdHandler(
+				w,
+				r,
+				bootstrapContainer.LoggingClientFrom(dic.Get),
+				v2Container.DBClientFrom(dic.Get),
+				errorContainer.ErrorHandlerFrom(dic.Get))
+		}).Methods(http.MethodGet)
+
+	e.HandleFunc(
+		"/"+DEVICE+"/{"+DEVICEID_PARAM+"}"+"/"+ALL,
+		func(w http.ResponseWriter, r *http.Request) {
+			data.V2GetAllEventByDeviceIdHandler(
 				w,
 				r,
 				bootstrapContainer.LoggingClientFrom(dic.Get),

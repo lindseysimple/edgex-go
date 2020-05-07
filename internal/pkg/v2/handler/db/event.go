@@ -6,8 +6,7 @@
 package db
 
 import (
-	"github.com/edgexfoundry/edgex-go/internal/pkg/v2/correlation/models/core/data"
-	v2model "github.com/edgexfoundry/edgex-go/internal/pkg/v2/models/coredata"
+	model "github.com/edgexfoundry/edgex-go/internal/pkg/v2/go-mod/models/coredata"
 	"github.com/edgexfoundry/go-mod-core-contracts/clients/logger"
 	"github.com/gomodule/redigo/redis"
 	"github.com/google/uuid"
@@ -23,7 +22,7 @@ type Client struct {
 // UnexpectedError - failed to add to database
 // NoValueDescriptor - no existing value descriptor for a reading in the event
 //func (c *Client) AddEvent(e data.Event) (id string, err error) {
-func (c *Client) AddEvent(e data.Event) (id string, err error) {
+func (c *Client) AddEvent(e model.Event) (id string, err error) {
 	conn := c.Pool.Get()
 	defer conn.Close()
 
@@ -37,7 +36,7 @@ func (c *Client) AddEvent(e data.Event) (id string, err error) {
 }
 
 // ************************** HELPER FUNCTIONS ***************************
-func addEvent(conn redis.Conn, e data.Event) (id string, err error) {
+func addEvent(conn redis.Conn, e model.Event) (id string, err error) {
 	if e.Created == 0 {
 		e.Created = MakeTimestamp()
 	}
@@ -46,18 +45,15 @@ func addEvent(conn redis.Conn, e data.Event) (id string, err error) {
 		e.ID = uuid.New().String()
 	}
 
-	eventHashes := data.Event{
-		Bytes:         e.Bytes,
+	eventHashes := model.Event{
 		CorrelationId: e.CorrelationId,
 		Checksum:      e.Checksum,
-		Event: v2model.Event{
-			ID:       e.ID,
-			Pushed:   e.Pushed,
-			Device:   e.Device,
-			Created:  e.Created,
-			Modified: e.Modified,
-			Origin:   e.Origin,
-		},
+		ID:            e.ID,
+		Pushed:        e.Pushed,
+		Device:        e.Device,
+		Created:       e.Created,
+		Modified:      e.Modified,
+		Origin:        e.Origin,
 	}
 
 	_ = conn.Send("MULTI")
@@ -72,7 +68,7 @@ func addEvent(conn redis.Conn, e data.Event) (id string, err error) {
 	rids := make([]interface{}, len(e.Readings)*2+1)
 	rids[0] = EventsCollection + ":readings:" + e.ID
 	for i, r := range e.Readings {
-		newReading := r.(v2model.SimpleReading)
+		newReading := r.(model.SimpleReading)
 		newReading.Created = e.Created
 		newReading.Device = e.Device
 		if newReading.Id != "" {
@@ -96,7 +92,7 @@ func addEvent(conn redis.Conn, e data.Event) (id string, err error) {
 	return e.ID, err
 }
 
-func (c *Client) GetEventById(id string) (event v2model.Event, err error) {
+func (c *Client) GetEventById(id string) (event model.Event, err error) {
 	conn := c.Pool.Get()
 	defer conn.Close()
 
@@ -108,7 +104,7 @@ func (c *Client) GetEventById(id string) (event v2model.Event, err error) {
 	return event, nil
 }
 
-func eventByID(conn redis.Conn, id string) (event v2model.Event, err error) {
+func eventByID(conn redis.Conn, id string) (event model.Event, err error) {
 	obj, err := redis.Values(conn.Do("HGETALL", EventsCollection+":id:"+id))
 	if err == redis.ErrNil {
 		return event, ErrNotFound
@@ -121,9 +117,9 @@ func eventByID(conn redis.Conn, id string) (event v2model.Event, err error) {
 	values, err := redis.Values(conn.Do("zrange", "v2:event:readings:"+id, 0, -1))
 	var readingIDs []string
 	redis.ScanSlice(values, &readingIDs)
-	var readings = make([]v2model.ReadingInterface, len(readingIDs))
+	var readings = make([]model.Reading, len(readingIDs))
 	for i, rid := range readingIDs {
-		var s v2model.SimpleReading
+		var s model.SimpleReading
 		if r, err := redis.Values(conn.Do("HGETALL", ReadingsCollection+":id:"+rid)); err == nil {
 			redis.ScanStruct(r, &s)
 			readings[i] = s
@@ -134,4 +130,107 @@ func eventByID(conn redis.Conn, id string) (event v2model.Event, err error) {
 
 	event.Readings = readings
 	return event, err
+}
+
+func (c *Client) GetEvents() ([]model.Event, error) {
+	conn := c.Pool.Get()
+	defer conn.Close()
+
+	event, err := getEvents(conn)
+	if err != nil {
+		return event, err
+	}
+
+	return event, nil
+}
+
+func getEvents(conn redis.Conn) (events []model.Event, err error) {
+	//var event model.Event
+	values, err := redis.Values(conn.Do("zrange", "v2:event:by_created", 0, -1))
+	if err == redis.ErrNil {
+		return []model.Event{}, ErrNotFound
+	}
+	var eventIDs []string
+	redis.ScanSlice(values, &eventIDs)
+	// get each event by id
+	for _, id := range eventIDs {
+		event, err := eventByID(conn, id)
+		if err != nil {
+			return []model.Event{}, err
+		} else {
+			events = append(events, event)
+		}
+	}
+	return events, err
+}
+
+func (c *Client) GetEventCount() (int, error) {
+	conn := c.Pool.Get()
+	defer conn.Close()
+
+	event, err := getEventCount(conn)
+	if err != nil {
+		return event, err
+	}
+
+	return event, nil
+}
+
+func getEventCount(conn redis.Conn) (int, error) {
+	count, err := redis.Int(conn.Do("zcount", "v2:event:by_created", 0, MakeTimestamp()))
+	if err == redis.ErrNil {
+		return 0, ErrNotFound
+	}
+	return count, err
+}
+
+func (c *Client) GetEventCountByDeviceId(id string) (int, error) {
+	conn := c.Pool.Get()
+	defer conn.Close()
+
+	count, err := getEventCountByDeviceId(id, conn)
+	if err != nil {
+		return count, err
+	}
+
+	return count, nil
+}
+
+func getEventCountByDeviceId(id string, conn redis.Conn) (int, error) {
+	count, err := redis.Int(conn.Do("zcount", "v2:event:by_device:"+id, 0, MakeTimestamp()))
+	if err == redis.ErrNil {
+		return 0, ErrNotFound
+	}
+	return count, err
+}
+
+func (c *Client) GetEventsByDeviceId(deviceId string) ([]model.Event, error) {
+	conn := c.Pool.Get()
+	defer conn.Close()
+
+	event, err := getEventsByDeviceId(deviceId, conn)
+	if err != nil {
+		return event, err
+	}
+
+	return event, nil
+}
+
+func getEventsByDeviceId(deviceId string, conn redis.Conn) (events []model.Event, err error) {
+	values, err := redis.Values(conn.Do("zrange", "v2:event:by_device:"+deviceId, 0, -1))
+	if err == redis.ErrNil {
+		return []model.Event{}, ErrNotFound
+	}
+	var eventIDs []string
+	redis.ScanSlice(values, &eventIDs)
+	// get each event by id
+	for _, id := range eventIDs {
+		event, err := eventByID(conn, id)
+		if err != nil {
+			return []model.Event{}, err
+		} else {
+			events = append(events, event)
+		}
+	}
+	return events, err
 }

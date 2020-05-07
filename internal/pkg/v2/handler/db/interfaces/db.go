@@ -6,13 +6,16 @@
 package interfaces
 
 import (
-	"github.com/edgexfoundry/edgex-go/internal/pkg/v2/correlation/models/core/data"
-	v2model "github.com/edgexfoundry/edgex-go/internal/pkg/v2/models/coredata"
+	model "github.com/edgexfoundry/edgex-go/internal/pkg/v2/go-mod/models/coredata"
 )
 
 type DBClient interface {
 	CloseSession()
 
-	AddEvent(e data.Event) (string, error)
-	GetEventById(id string) (v2model.Event, error)
+	AddEvent(e model.Event) (string, error)
+	GetEventById(id string) (model.Event, error)
+	GetEvents() ([]model.Event, error)
+	GetEventCount() (int, error)
+	GetEventCountByDeviceId(id string) (int, error)
+	GetEventsByDeviceId(id string) ([]model.Event, error)
 }

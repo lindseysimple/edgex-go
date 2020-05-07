@@ -8,6 +8,6 @@ package base
 // Request defines the Request Content for request DTOs. This object and its properties correspond to the BaseRequest
 // object in the APIv2 specification.
 type Request struct {
-	CorrelationID string `json:"correlationId" validate:"empty=false & format=uuid"`
-	RequestID     string `json:"requestId" validate:"empty=false & format=uuid"`
+	CorrelationID string `json:"correlationId" validate:"required,uuid"`
+	RequestID     string `json:"requestId" validate:"required,uuid"`
 }
