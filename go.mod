@@ -14,14 +14,19 @@ require (
 	github.com/edgexfoundry/go-mod-secrets v0.0.17
 	github.com/fxamacker/cbor/v2 v2.2.0
 	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8
+	github.com/go-playground/locales v0.13.0
+	github.com/go-playground/universal-translator v0.17.0
 	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/google/uuid v1.1.0
 	github.com/gorilla/mux v1.7.1
 	github.com/imdario/mergo v0.3.6
+	github.com/leodido/go-urn v1.1.0 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/robfig/cron v0.0.0-20180505203441-b41be1df6967
 	github.com/stretchr/testify v1.5.1
 	gopkg.in/eapache/queue.v1 v1.1.0
+	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
+	gopkg.in/go-playground/validator.v9 v9.31.0
 	gopkg.in/yaml.v2 v2.2.8
 )
 

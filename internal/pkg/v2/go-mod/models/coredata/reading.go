@@ -3,7 +3,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package data
+package coredata
 
 // BaseReading contains data that was gathered from a device.
 // Readings returned will all inherit from BaseReading but their concrete types will be either SimpleReading or BinaryReading,
@@ -31,20 +31,17 @@ type BinaryReading struct {
 // An event reading for a simple data type
 // SimpleReading object in the APIv2 specification.
 type SimpleReading struct {
-	//BaseReading   `json:",inline"`
-	BaseReading
+	BaseReading   `json:",inline"`
 	Value         string `json:"value,omitempty" codec:"value,omitempty"`                 // Device sensor data value
 	ValueType     string `json:"valueType,omitempty" codec:"valueType,omitempty"`         // Indicates the datatype of the value property
 	FloatEncoding string `json:"floatEncoding,omitempty" codec:"floatEncoding,omitempty"` // Indicates how a float value is encoded
 }
 
 // a abstract interface to be implemented by BinaryReading/SimpleReading
-type ReadingInterface interface {
+type Reading interface {
 	implicit()
 }
 
 // Empty methods for BinaryReading and SimpleReading structs to implement the abstract Reading interface
-//func (*BinaryReading) Implicit() {}
 func (BinaryReading) implicit() {}
 func (SimpleReading) implicit() {}
-
