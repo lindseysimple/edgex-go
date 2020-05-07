@@ -3,7 +3,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package db
+package infrastructure
 
 import (
 	"errors"
@@ -11,36 +11,9 @@ import (
 )
 
 const (
-	// Databases
-	MongoDB = "mongodb"
-	RedisDB = "redisdb"
-
 	// Data
-	EventsCollection          = "v2:event"
-	ReadingsCollection        = "v2:reading"
-	ValueDescriptorCollection = "valueDescriptor"
-
-	//Export
-	ExportCollection = "exportConfiguration"
-
-	//Logging
-	LogsCollection = "logEntry"
-
-	// Metadata
-	Device           = "device"
-	DeviceProfile    = "deviceProfile"
-	DeviceService    = "deviceService"
-	Addressable      = "addressable"
-	Command          = "command"
-	DeviceReport     = "deviceReport"
-	ProvisionWatcher = "provisionWatcher"
-	Interval         = "interval"
-	IntervalAction   = "intervalAction"
-
-	// Notification
-	Notification = "notification"
-	Subscription = "subscription"
-	Transmission = "transmission"
+	EventsCollection   = "v2:event"
+	ReadingsCollection = "v2:reading"
 )
 
 var (

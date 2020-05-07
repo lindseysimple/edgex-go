@@ -8,18 +8,19 @@ package db
 import (
 	"context"
 	"fmt"
-	"github.com/edgexfoundry/edgex-go/internal/pkg/bootstrap/interfaces"
-	"github.com/edgexfoundry/edgex-go/internal/pkg/v2/bootstrap/container"
-	"github.com/edgexfoundry/edgex-go/internal/pkg/v2/handler/db"
-	bootstrapContainer "github.com/edgexfoundry/go-mod-bootstrap/bootstrap/container"
-	"github.com/edgexfoundry/go-mod-bootstrap/bootstrap/startup"
-	"github.com/edgexfoundry/go-mod-bootstrap/di"
 	"sync"
 	"time"
 
-	dbInterfaces "github.com/edgexfoundry/edgex-go/internal/pkg/v2/handler/db/interfaces"
+	"github.com/edgexfoundry/edgex-go/internal/pkg/bootstrap/interfaces"
+	"github.com/edgexfoundry/edgex-go/internal/pkg/v2/bootstrap/container"
+	db "github.com/edgexfoundry/edgex-go/internal/pkg/v2/infrastructure"
+	dbInterfaces "github.com/edgexfoundry/edgex-go/internal/pkg/v2/infrastructure/interfaces"
 
+	bootstrapContainer "github.com/edgexfoundry/go-mod-bootstrap/bootstrap/container"
+	"github.com/edgexfoundry/go-mod-bootstrap/bootstrap/startup"
 	bootstrapConfig "github.com/edgexfoundry/go-mod-bootstrap/config"
+	"github.com/edgexfoundry/go-mod-bootstrap/di"
+
 	"github.com/edgexfoundry/go-mod-core-contracts/clients/logger"
 )
 
@@ -101,7 +102,6 @@ func (d Database) BootstrapHandler(
 		container.DBClientInterfaceName: func(get di.Get) interface{} {
 			return dbClient
 		},
-
 	})
 
 	lc.Info("Database connected")

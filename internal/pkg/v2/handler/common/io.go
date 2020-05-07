@@ -8,13 +8,15 @@ package common
 import (
 	"context"
 	"encoding/json"
-	"github.com/edgexfoundry/edgex-go/internal/core/data/config"
-	dto "github.com/edgexfoundry/edgex-go/internal/pkg/v2/go-mod/dtos/coredata"
-	model "github.com/edgexfoundry/edgex-go/internal/pkg/v2/go-mod/models/coredata"
-	"github.com/edgexfoundry/go-mod-core-contracts/clients"
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/edgexfoundry/edgex-go/internal/core/data/config"
+	dto "github.com/edgexfoundry/edgex-go/internal/pkg/v2/go-mod/dtos/coredata"
+	model "github.com/edgexfoundry/edgex-go/internal/pkg/v2/go-mod/models/coredata"
+
+	"github.com/edgexfoundry/go-mod-core-contracts/clients"
 )
 
 // jsonReader handles unmarshaling of a JSON request body payload

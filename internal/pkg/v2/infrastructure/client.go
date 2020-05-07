@@ -3,32 +3,33 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package db
+package infrastructure
 
 import (
 	"fmt"
-
-
-	//"github.com/edgexfoundry/edgex-go/internal/pkg/db"
-
-	"github.com/edgexfoundry/go-mod-core-contracts/clients/logger"
-	"github.com/gomodule/redigo/redis"
+	"github.com/google/uuid"
 	"sync"
 	"time"
+
+	model "github.com/edgexfoundry/edgex-go/internal/pkg/v2/go-mod/models/coredata"
+
+	"github.com/edgexfoundry/go-mod-core-contracts/clients/logger"
+
+	"github.com/gomodule/redigo/redis"
 )
 
-var currClient *Client // a singleton so Readings can be de-referenced
+var currClient *CoreDataClient // a singleton so Readings can be de-referenced
 var once sync.Once
 
 type CoreDataClient struct {
-	*Client
-	logger logger.LoggingClient
+	Pool      *redis.Pool // A thread-safe pool of connections to Redis
+	BatchSize int
+	logger    logger.LoggingClient
 }
 
 func NewCoreDataClient(config Configuration, logger logger.LoggingClient) (*CoreDataClient, error) {
 	var err error
-	dc := &CoreDataClient{}
-	dc.Client, err = NewClient(config, logger)
+	dc, err := NewClient(config, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -43,7 +44,8 @@ func NewCoreDataClient(config Configuration, logger logger.LoggingClient) (*Core
 }
 
 // Return a pointer to the Redis client
-func NewClient(config Configuration, lc logger.LoggingClient) (*Client, error) {
+func NewClient(config Configuration, lc logger.LoggingClient) (*CoreDataClient, error) {
+
 	once.Do(func() {
 		connectionString := fmt.Sprintf("%s:%d", config.Host, config.Port)
 		opts := []redis.DialOption{
@@ -65,7 +67,7 @@ func NewClient(config Configuration, lc logger.LoggingClient) (*Client, error) {
 		if config.BatchSize != 0 {
 			batchSize = config.BatchSize
 		}
-		currClient = &Client{
+		currClient = &CoreDataClient{
 			Pool: &redis.Pool{
 				IdleTimeout: 0,
 				/* The current implementation processes nested structs using concurrent connections.
@@ -78,18 +80,34 @@ func NewClient(config Configuration, lc logger.LoggingClient) (*Client, error) {
 				MaxIdle: 10,
 				Dial:    dialFunc,
 			},
-			BatchSize:     batchSize,
-			loggingClient: lc,
+			BatchSize: batchSize,
+			logger:    lc,
 		}
 	})
 	return currClient, nil
 }
 
 // CloseSession closes the connections to Redis
-func (c *Client) CloseSession() {
+func (c *CoreDataClient) CloseSession() {
 	c.Pool.Close()
 	//close(deleteEventsChannel)
 	//close(deleteReadingsChannel)
 	currClient = nil
 	once = sync.Once{}
+}
+
+// Add a new event
+// UnexpectedError - failed to add to database
+// NoValueDescriptor - no existing value descriptor for a reading in the event
+func (c *CoreDataClient) AddEvent(e model.Event) (id string, err error) {
+	conn := c.Pool.Get()
+	defer conn.Close()
+
+	if e.ID != "" {
+		_, err = uuid.Parse(e.ID)
+		if err != nil {
+			return "", ErrInvalidObjectId
+		}
+	}
+	return addEvent(conn, e)
 }

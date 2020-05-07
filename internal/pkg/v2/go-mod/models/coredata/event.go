@@ -8,7 +8,7 @@ package coredata
 // Event represents a single measurable event read from a device
 type Event struct {
 	CorrelationId string
-	RequestId string
+	RequestId     string
 	Checksum      string
 	ID            string    `json:"id,omitempty" codec:"id,omitempty"`             // ID uniquely identifies an event, for example a UUID
 	Pushed        int64     `json:"pushed,omitempty" codec:"pushed,omitempty"`     // Pushed is a timestamp indicating when the event was exported. If unexported, the value is zero.

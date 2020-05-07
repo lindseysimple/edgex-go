@@ -9,8 +9,8 @@ import (
 )
 
 var testReading = BaseReading{
-	Device:        v2.TestDeviceName,
-	Name:          v2.TestReadingName,
+	Device: v2.TestDeviceName,
+	Name:   v2.TestReadingName,
 	SimpleReading: SimpleReading{
 		ValueType: v2.TestValueType,
 		Value:     v2.TestValue,
@@ -20,16 +20,16 @@ var testReading = BaseReading{
 func Test_toReadingModel(t *testing.T) {
 	valid := testReading
 	expected := model.SimpleReading{
-		BaseReading:   model.BaseReading{
+		BaseReading: model.BaseReading{
 			Device: v2.TestDeviceName,
 			Name:   v2.TestReadingName,
 		},
-		Value:         v2.TestValue,
-		ValueType:     v2.TestValueType,
+		Value:     v2.TestValue,
+		ValueType: v2.TestValueType,
 	}
 	tests := []struct {
 		name        string
-		reading       BaseReading
+		reading     BaseReading
 		expectError bool
 	}{
 		{"valid Event", valid, false},

@@ -13,9 +13,4 @@ type DBClient interface {
 	CloseSession()
 
 	AddEvent(e model.Event) (string, error)
-	GetEventById(id string) (model.Event, error)
-	GetEvents() ([]model.Event, error)
-	GetEventCount() (int, error)
-	GetEventCountByDeviceId(id string) (int, error)
-	GetEventsByDeviceId(id string) ([]model.Event, error)
 }

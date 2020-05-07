@@ -3,11 +3,11 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package db
+package infrastructure
 
 import (
-	"github.com/edgexfoundry/edgex-go/internal/pkg/db"
 	model "github.com/edgexfoundry/edgex-go/internal/pkg/v2/go-mod/models/coredata"
+
 	"github.com/gomodule/redigo/redis"
 	"github.com/google/uuid"
 )
@@ -16,7 +16,7 @@ import (
 func addReading(conn redis.Conn, tx bool, r model.Reading) (id string, err error) {
 	newReading := r.(model.SimpleReading)
 	if newReading.Created == 0 {
-		newReading.Created = db.MakeTimestamp()
+		newReading.Created = MakeTimestamp()
 	}
 	if newReading.Id == "" {
 		newReading.Id = uuid.New().String()
