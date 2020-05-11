@@ -7,11 +7,11 @@ import (
 	"testing"
 
 	"github.com/edgexfoundry/edgex-go/internal/core/data/config"
-	contract "github.com/edgexfoundry/edgex-go/internal/pkg/v2/go-mod/models/coredata"
 	dataMock "github.com/edgexfoundry/edgex-go/internal/pkg/v2/handler/core/data/mocks"
 	dbMock "github.com/edgexfoundry/edgex-go/internal/pkg/v2/infrastructure/interfaces/mocks"
 
 	"github.com/edgexfoundry/go-mod-core-contracts/clients/logger"
+	contract "github.com/edgexfoundry/go-mod-core-contracts/v2/models"
 
 	"github.com/edgexfoundry/go-mod-messaging/messaging"
 	msgTypes "github.com/edgexfoundry/go-mod-messaging/pkg/types"

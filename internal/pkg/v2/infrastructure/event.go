@@ -6,7 +6,7 @@
 package infrastructure
 
 import (
-	model "github.com/edgexfoundry/edgex-go/internal/pkg/v2/go-mod/models/coredata"
+	model "github.com/edgexfoundry/go-mod-core-contracts/v2/models"
 
 	"github.com/gomodule/redigo/redis"
 	"github.com/google/uuid"
@@ -18,14 +18,14 @@ func addEvent(conn redis.Conn, e model.Event) (id string, err error) {
 		e.Created = MakeTimestamp()
 	}
 
-	if e.ID == "" {
-		e.ID = uuid.New().String()
+	if e.Id == "" {
+		e.Id = uuid.New().String()
 	}
 
 	eventHashes := model.Event{
 		CorrelationId: e.CorrelationId,
 		Checksum:      e.Checksum,
-		ID:            e.ID,
+		Id:            e.Id,
 		Pushed:        e.Pushed,
 		Device:        e.Device,
 		Created:       e.Created,
@@ -34,16 +34,16 @@ func addEvent(conn redis.Conn, e model.Event) (id string, err error) {
 	}
 
 	_ = conn.Send("MULTI")
-	_ = conn.Send("HMSET", redis.Args{}.Add(EventsCollection+":id:"+e.ID).AddFlat(&eventHashes)...)
-	_ = conn.Send("ZADD", EventsCollection+":by_created", e.Created, e.ID)
-	_ = conn.Send("ZADD", EventsCollection+":by_pushed", e.Pushed, e.ID)
-	_ = conn.Send("ZADD", EventsCollection+":by_device:"+e.Device, e.Created, e.ID)
+	_ = conn.Send("HMSET", redis.Args{}.Add(EventsCollection+":id:"+e.Id).AddFlat(&eventHashes)...)
+	_ = conn.Send("ZADD", EventsCollection+":created", e.Created, e.Id)
+	_ = conn.Send("ZADD", EventsCollection+":pushed", e.Pushed, e.Id)
+	_ = conn.Send("ZADD", EventsCollection+":device:"+e.Device, e.Created, e.Id)
 	if e.Checksum != "" {
-		_ = conn.Send("ZADD", EventsCollection+":by_checksum:"+e.Checksum, 0, e.ID)
+		_ = conn.Send("ZADD", EventsCollection+":checksum:"+e.Checksum, 0, e.Id)
 	}
 
 	rids := make([]interface{}, len(e.Readings)*2+1)
-	rids[0] = EventsCollection + ":readings:" + e.ID
+	rids[0] = EventsCollection + ":readings:" + e.Id
 	for i, r := range e.Readings {
 		newReading := r.(model.SimpleReading)
 		newReading.Created = e.Created
@@ -66,5 +66,5 @@ func addEvent(conn redis.Conn, e model.Event) (id string, err error) {
 	}
 
 	_, err = conn.Do("EXEC")
-	return e.ID, err
+	return e.Id, err
 }

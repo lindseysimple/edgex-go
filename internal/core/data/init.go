@@ -28,6 +28,7 @@ import (
 	dataContainer "github.com/edgexfoundry/edgex-go/internal/core/data/container"
 	errorContainer "github.com/edgexfoundry/edgex-go/internal/pkg/container"
 	"github.com/edgexfoundry/edgex-go/internal/pkg/errorconcept"
+	bootstrapContainer "github.com/edgexfoundry/edgex-go/internal/pkg/v2/bootstrap/container"
 
 	"github.com/edgexfoundry/go-mod-core-contracts/clients"
 	"github.com/edgexfoundry/go-mod-core-contracts/clients/metadata"
@@ -125,6 +126,9 @@ func (b *Bootstrap) BootstrapHandler(ctx context.Context, wg *sync.WaitGroup, _ 
 			return errorconcept.NewErrorHandler(lc)
 		},
 	})
+
+	bootstrapContainer.BootstrapContainer = dic
+	bootstrapContainer.Init()
 
 	return true
 }

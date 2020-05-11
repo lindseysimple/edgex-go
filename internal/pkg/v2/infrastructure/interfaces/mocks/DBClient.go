@@ -3,7 +3,7 @@
 package mocks
 
 import (
-	coredata "github.com/edgexfoundry/edgex-go/internal/pkg/v2/go-mod/models/coredata"
+	model "github.com/edgexfoundry/go-mod-core-contracts/v2/models"
 
 	mock "github.com/stretchr/testify/mock"
 )
@@ -14,18 +14,18 @@ type DBClient struct {
 }
 
 // AddEvent provides a mock function with given fields: e
-func (_m *DBClient) AddEvent(e coredata.Event) (string, error) {
+func (_m *DBClient) AddEvent(e model.Event) (string, error) {
 	ret := _m.Called(e)
 
 	var r0 string
-	if rf, ok := ret.Get(0).(func(coredata.Event) string); ok {
+	if rf, ok := ret.Get(0).(func(model.Event) string); ok {
 		r0 = rf(e)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(coredata.Event) error); ok {
+	if rf, ok := ret.Get(1).(func(model.Event) error); ok {
 		r1 = rf(e)
 	} else {
 		r1 = ret.Error(1)

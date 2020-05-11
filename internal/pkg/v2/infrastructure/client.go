@@ -6,12 +6,14 @@
 package infrastructure
 
 import (
+	"encoding/json"
 	"fmt"
+	"github.com/edgexfoundry/edgex-go/internal/pkg/db"
 	"github.com/google/uuid"
 	"sync"
 	"time"
 
-	model "github.com/edgexfoundry/edgex-go/internal/pkg/v2/go-mod/models/coredata"
+	model "github.com/edgexfoundry/go-mod-core-contracts/v2/models"
 
 	"github.com/edgexfoundry/go-mod-core-contracts/clients/logger"
 
@@ -20,6 +22,9 @@ import (
 
 var currClient *CoreDataClient // a singleton so Readings can be de-referenced
 var once sync.Once
+
+var deleteReadingsChannel = make(chan string, 50)
+var deleteEventsChannel = make(chan string, 50)
 
 type CoreDataClient struct {
 	Pool      *redis.Pool // A thread-safe pool of connections to Redis
@@ -37,8 +42,8 @@ func NewCoreDataClient(config Configuration, logger logger.LoggingClient) (*Core
 	// Background process for deleting device readings and events.
 	// This only needs to be running for core-data since this is the service responsible for handling the deletion
 	// of events
-	// go dc.AsyncDeleteEvents()
-	// go dc.AsyncDeleteReadings()
+	go dc.AsyncDeleteEvents()
+	go dc.AsyncDeleteReadings()
 
 	return dc, err
 }
@@ -90,8 +95,8 @@ func NewClient(config Configuration, lc logger.LoggingClient) (*CoreDataClient, 
 // CloseSession closes the connections to Redis
 func (c *CoreDataClient) CloseSession() {
 	c.Pool.Close()
-	//close(deleteEventsChannel)
-	//close(deleteReadingsChannel)
+	close(deleteEventsChannel)
+	close(deleteReadingsChannel)
 	currClient = nil
 	once = sync.Once{}
 }
@@ -103,11 +108,258 @@ func (c *CoreDataClient) AddEvent(e model.Event) (id string, err error) {
 	conn := c.Pool.Get()
 	defer conn.Close()
 
-	if e.ID != "" {
-		_, err = uuid.Parse(e.ID)
+	if e.Id != "" {
+		_, err = uuid.Parse(e.Id)
 		if err != nil {
 			return "", ErrInvalidObjectId
 		}
 	}
 	return addEvent(conn, e)
+}
+
+// DeleteEventsByDevice Delete events and readings associated with the specified deviceID
+func (c *CoreDataClient) DeleteEventsByDevice(deviceId string) (int, error) {
+	err := c.DeleteReadingsByDevice(deviceId)
+	if err != nil {
+		return 0, err
+	}
+
+	conn := c.Pool.Get()
+	defer conn.Close()
+
+	ids, err := redis.Strings(conn.Do("ZRANGE", db.EventsCollection+":device:"+deviceId, 0, -1))
+	if err != nil {
+		return 0, err
+	}
+
+	err = conn.Send("MULTI")
+	if err != nil {
+		return 0, err
+	}
+
+	for _, id := range ids {
+		err = conn.Send("RENAME", id, DeletedEventsCollection+":"+id)
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	err = conn.Send("EXEC")
+	deleteEventsChannel <- deviceId
+
+	return len(ids), nil
+}
+
+// DeleteReadingsByDevice deletes readings associated with the specified device
+func (c *CoreDataClient) DeleteReadingsByDevice(device string) error {
+	conn := c.Pool.Get()
+	defer conn.Close()
+
+	ids, err := redis.Strings(conn.Do("ZRANGE", ReadingsCollection+":device:"+device, 0, -1))
+	if err != nil {
+		return err
+	}
+
+	err = conn.Send("MULTI")
+	if err != nil {
+		return err
+	}
+
+	for _, id := range ids {
+		err = conn.Send("RENAME", id, DeletedReadingsCollection+":"+id)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = conn.Send("EXEC")
+	deleteReadingsChannel <- device
+
+	return nil
+}
+
+// AsyncDeleteEvents Handles the deletion of device events asynchronously. This function is expected to be running in
+// a go-routine and works with the "DeleteEventsByDevice" function for better performance.
+func (c *CoreDataClient) AsyncDeleteEvents() {
+	conn := c.Pool.Get()
+	defer conn.Close()
+
+	c.logger.Debug("Starting background event deletion process")
+	for {
+		select {
+		case device, ok := <-deleteEventsChannel:
+			if ok {
+				c.logger.Debug("Deleting event data for device: " + device)
+				startTime := time.Now()
+				c.deleteRenamedEvents(device)
+				c.logger.Debug(fmt.Sprintf("Deleted events for device: '%s', elapsed time: %s", device, time.Since(startTime)))
+			}
+		}
+	}
+}
+
+// AsyncDeleteReadings Handles the deletion of device readings asynchronously. This function is expected to be running
+// in a go-routine and works with the "DeleteReadingsByDevice" function for better performance.
+func (c *CoreDataClient) AsyncDeleteReadings() {
+	c.logger.Debug("Starting background event deletion process")
+	for {
+		select {
+		case device, ok := <-deleteReadingsChannel:
+			if ok {
+				c.logger.Debug("Deleting reading data for device: " + device)
+				startTime := time.Now()
+				c.deleteRenamedReadings(device)
+				c.logger.Debug(fmt.Sprintf("Deleted readings for device: '%s', elapsed time: %s", device, time.Since(startTime)))
+			}
+		}
+	}
+}
+
+// deleteRenamedEvents deletes all events associated with the specified device which have been marked for deletion.
+// See the "DeleteEventsByDevice" function for details on the how events are marked for deletion(renamed)
+func (c *CoreDataClient) deleteRenamedEvents(device string) {
+	conn := c.Pool.Get()
+	defer conn.Close()
+
+	ids, err := redis.Strings(conn.Do("ZRANGE", EventsCollection+":device:"+device, 0, -1))
+	if err != nil {
+		c.logger.Error("Unable to delete event:" + err.Error())
+		return
+	}
+
+	_, err = conn.Do("MULTI")
+	if err != nil {
+		c.logger.Error("Unable to start transaction for deletion:" + err.Error())
+	}
+
+	for _, id := range ids {
+		_, err = conn.Do("GET", DeletedEventsCollection+":"+id)
+		if err != nil {
+			c.logger.Error("Unable to obtain events marked for deletion:" + err.Error())
+		}
+	}
+	events, err := redis.Strings(conn.Do("EXEC"))
+
+	queriesInQueue := 0
+	var e model.Event
+	_, err = conn.Do("MULTI")
+	if err != nil {
+		c.logger.Error("Unable to start batch processing for event deletion:" + err.Error())
+	}
+
+	for _, event := range events {
+		err = json.Unmarshal([]byte(event), &e)
+		if err != nil {
+			c.logger.Error("Unable to marshal event: " + err.Error())
+		}
+		_ = conn.Send("UNLINK", DeletedEventsCollection+":"+e.Id)
+		_ = conn.Send("ZREM", EventsCollection, e.Id)
+		_ = conn.Send("ZREM", EventsCollection+":created", e.Id)
+		_ = conn.Send("ZREM", EventsCollection+":device:"+e.Device, e.Id)
+		_ = conn.Send("ZREM", EventsCollection+":pushed", e.Id)
+		if e.Checksum != "" {
+			_ = conn.Send("ZREM", EventsCollection+":checksum:"+e.Checksum, 0)
+		}
+
+		queriesInQueue++
+		if queriesInQueue >= c.BatchSize {
+			_, err = conn.Do("EXEC")
+			queriesInQueue = 0
+			if err != nil {
+				c.logger.Error("Unable to execute batch deletion: " + err.Error())
+				return
+			}
+		}
+	}
+
+	if queriesInQueue > 0 {
+		_, err = conn.Do("EXEC")
+
+		if err != nil {
+			c.logger.Error("Unable to execute batch deletion: " + err.Error())
+		}
+	}
+}
+
+// deleteRenamedReadings deletes all readings associated with the specified device which have been marked for deletion.
+// See the "DeleteReadingsByDevice" function for details on the how readings are marked for deletion(renamed)
+func (c *CoreDataClient) deleteRenamedReadings(device string) {
+	conn := c.Pool.Get()
+	defer conn.Close()
+
+	ids, err := redis.Strings(conn.Do("ZRANGE", db.ReadingsCollection+":device:"+device, 0, -1))
+	if err != nil {
+		c.logger.Error("Unable to delete reading:" + err.Error())
+		return
+	}
+
+	_, err = conn.Do("MULTI")
+	if err != nil {
+		c.logger.Error("Unable to start transaction for deletion:" + err.Error())
+	}
+
+	for _, id := range ids {
+		_, err = conn.Do("GET", DeletedReadingsCollection+":"+id)
+		if err != nil {
+			c.logger.Error("Unable to obtain readings marked for deletion:" + err.Error())
+		}
+	}
+	readings, err := redis.Strings(conn.Do("EXEC"))
+
+	queriesInQueue := 0
+
+	_, err = conn.Do("MULTI")
+	if err != nil {
+		c.logger.Error("Unable to start batch processing for reading deletion:" + err.Error())
+	}
+
+	for _, reading := range readings {
+		var r model.Reading
+		var readingId string
+		var readingName string
+		var device string
+		err = json.Unmarshal([]byte(reading), &r)
+		if err != nil {
+			c.logger.Error("Unable to marshal reading: " + err.Error())
+		}
+		switch r.(type) {
+		case model.BinaryReading:
+			readingStruct, ok := r.(model.BinaryReading)
+			if ok {
+				readingId = readingStruct.Id
+				readingName = readingStruct.Name
+				device = readingStruct.Device
+			}
+		case model.SimpleReading:
+			readingStruct, ok := r.(model.SimpleReading)
+			if ok {
+				readingId = readingStruct.Id
+				readingName = readingStruct.Name
+				device = readingStruct.Device
+			}
+		}
+		_ = conn.Send("UNLINK", DeletedReadingsCollection+":"+readingId)
+		_ = conn.Send("ZREM", ReadingsCollection, readingId)
+		_ = conn.Send("ZREM", ReadingsCollection+":created", readingId)
+		_ = conn.Send("ZREM", ReadingsCollection+":device:"+device, readingId)
+		_ = conn.Send("ZREM", ReadingsCollection+":name:"+readingName, readingId)
+		queriesInQueue++
+
+		if queriesInQueue >= c.BatchSize {
+			_, err = conn.Do("EXEC")
+			queriesInQueue = 0
+			if err != nil {
+				c.logger.Error("Unable to execute batch deletion: " + err.Error())
+				return
+			}
+		}
+	}
+
+	if queriesInQueue > 0 {
+		_, err = conn.Do("EXEC")
+
+		if err != nil {
+			c.logger.Error("Unable to execute batch deletion: " + err.Error())
+		}
+	}
 }

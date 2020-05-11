@@ -6,7 +6,7 @@
 package interfaces
 
 import (
-	model "github.com/edgexfoundry/edgex-go/internal/pkg/v2/go-mod/models/coredata"
+	model "github.com/edgexfoundry/go-mod-core-contracts/v2/models"
 )
 
 type DBClient interface {

@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/edgexfoundry/edgex-go/internal/pkg/db"
-	contract "github.com/edgexfoundry/edgex-go/internal/pkg/v2/go-mod/models/coredata"
+	contract "github.com/edgexfoundry/go-mod-core-contracts/v2/models"
 
 	"github.com/google/uuid"
 )
@@ -27,7 +27,7 @@ const (
 // Supporting methods
 // Reset() re-initializes dependencies for each test
 func reset() {
-	testEvent.ID = testUUIDString
+	testEvent.Id = testUUIDString
 	testEvent.Device = testDeviceName
 	testEvent.Origin = testOrigin
 	testEvent.Readings = buildReadings()

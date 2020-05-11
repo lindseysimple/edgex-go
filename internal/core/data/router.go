@@ -33,7 +33,6 @@ import (
 	"github.com/edgexfoundry/edgex-go/internal/pkg/correlation/models"
 	"github.com/edgexfoundry/edgex-go/internal/pkg/errorconcept"
 	"github.com/edgexfoundry/edgex-go/internal/pkg/telemetry"
-	v2Container "github.com/edgexfoundry/edgex-go/internal/pkg/v2/bootstrap/container"
 	v2Controller "github.com/edgexfoundry/edgex-go/internal/pkg/v2/controller/http/core/data"
 
 	bootstrapContainer "github.com/edgexfoundry/go-mod-bootstrap/bootstrap/container"
@@ -43,6 +42,7 @@ import (
 	"github.com/edgexfoundry/go-mod-core-contracts/clients/logger"
 	"github.com/edgexfoundry/go-mod-core-contracts/clients/metadata"
 	contract "github.com/edgexfoundry/go-mod-core-contracts/models"
+	v2Constant "github.com/edgexfoundry/go-mod-core-contracts/v2"
 
 	"github.com/edgexfoundry/go-mod-messaging/messaging"
 
@@ -239,17 +239,10 @@ func loadRestRoutes(r *mux.Router, dic *di.Container) {
 		}).Methods(http.MethodGet)
 
 	// V2 event Route
-	r.HandleFunc(ApiV2EventRoute, func(w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc(v2Constant.ApiEventRoute, func(w http.ResponseWriter, r *http.Request) {
 		v2Controller.EventController(
 			w,
-			r,
-			bootstrapContainer.LoggingClientFrom(dic.Get),
-			v2Container.DBClientFrom(dic.Get),
-			dataContainer.PublisherEventsChannelFrom(dic.Get),
-			dataContainer.MessagingClientFrom(dic.Get),
-			dataContainer.MetadataDeviceClientFrom(dic.Get),
-			errorContainer.ErrorHandlerFrom(dic.Get),
-			dataContainer.ConfigurationFrom(dic.Get))
+			r)
 	}).Methods(http.MethodPost)
 
 	// Readings

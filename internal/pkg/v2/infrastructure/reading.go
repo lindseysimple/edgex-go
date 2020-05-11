@@ -6,7 +6,7 @@
 package infrastructure
 
 import (
-	model "github.com/edgexfoundry/edgex-go/internal/pkg/v2/go-mod/models/coredata"
+	model "github.com/edgexfoundry/go-mod-core-contracts/v2/models"
 
 	"github.com/gomodule/redigo/redis"
 	"github.com/google/uuid"
@@ -30,7 +30,6 @@ func addReading(conn redis.Conn, tx bool, r model.Reading) (id string, err error
 	_ = conn.Send("HMSET", redis.Args{}.Add(ReadingsCollection+":id:"+newReading.Id).AddFlat(&newReading)...)
 	_ = conn.Send("ZADD", ReadingsCollection+":created", newReading.Created, newReading.Id)
 	_ = conn.Send("ZADD", ReadingsCollection+":device:"+newReading.Device, newReading.Created, newReading.Id)
-	_ = conn.Send("ZADD", ReadingsCollection+":name:"+newReading.Name, newReading.Created, newReading.Id)
 	if tx {
 		_, err = conn.Do("EXEC")
 	}

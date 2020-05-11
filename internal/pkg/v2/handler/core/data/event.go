@@ -9,14 +9,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/edgexfoundry/edgex-go/internal/pkg/correlation"
 
 	"github.com/edgexfoundry/edgex-go/internal/core/data/config"
-	model "github.com/edgexfoundry/edgex-go/internal/pkg/v2/go-mod/models/coredata"
 	"github.com/edgexfoundry/edgex-go/internal/pkg/v2/infrastructure/interfaces"
 
 	"github.com/edgexfoundry/go-mod-core-contracts/clients"
 	"github.com/edgexfoundry/go-mod-core-contracts/clients/logger"
 	"github.com/edgexfoundry/go-mod-core-contracts/clients/metadata"
+	model "github.com/edgexfoundry/go-mod-core-contracts/v2/models"
 
 	"github.com/edgexfoundry/go-mod-messaging/messaging"
 	msgTypes "github.com/edgexfoundry/go-mod-messaging/pkg/types"
@@ -62,14 +63,14 @@ func AddNewEvent(
 		if err != nil {
 			return "", err
 		}
-		e.ID = id
+		e.Id = id
 	}
 
 	putEventOnQueue(e, ctx, lc, msgClient, configuration) // Push event to message bus for App Services to consume
 	chEvents <- DeviceLastReported{e.Device}              // update last reported connected (device)
 	chEvents <- DeviceServiceLastReported{e.Device}       // update last reported connected (device service)
 
-	return e.ID, nil
+	return e.Id, nil
 }
 
 // Put event on the message queue to be processed by the rules engine
@@ -82,7 +83,7 @@ func putEventOnQueue(
 
 	lc.Info("Putting event on message queue")
 
-	// evt.CorrelationId = correlation.FromContext(ctx)
+	evt.CorrelationId = correlation.FromContext(ctx)
 	var data []byte
 	var err error
 	// Re-marshal JSON content into bytes.

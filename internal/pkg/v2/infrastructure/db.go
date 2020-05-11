@@ -12,8 +12,10 @@ import (
 
 const (
 	// Data
-	EventsCollection   = "v2:event"
-	ReadingsCollection = "v2:reading"
+	EventsCollection          = "v2:event"
+	ReadingsCollection        = "v2:reading"
+	DeletedEventsCollection   = "gc:" + EventsCollection
+	DeletedReadingsCollection = "gc:" + ReadingsCollection
 )
 
 var (
