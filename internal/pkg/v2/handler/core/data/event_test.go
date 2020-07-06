@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"github.com/globalsign/mgo/bson"
 	"github.com/stretchr/testify/mock"
 	"sync"
 	"testing"
@@ -71,6 +72,57 @@ func TestAddEventWithPersistence(t *testing.T) {
 	for i, val := range bitEvents {
 		if !val {
 			t.Errorf("event not received in timely fashion, index %v, TestAddEventWithPersistence", i)
+		}
+	}
+
+	dbClientMock.AssertExpectations(t)
+}
+
+func TestAddEventNoPersistence(t *testing.T) {
+	reset()
+	msgClient, _ := messaging.NewMessageClient(msgTypes.MessageBusConfig{
+		PublishHost: msgTypes.HostInfo{
+			Host:     "*",
+			Protocol: "tcp",
+			Port:     5563,
+		},
+		Type: "zero",
+	})
+
+	dbClientMock := newAddEventMockDB(false)
+	evt := contract.Event{Device: testDeviceName, Origin: testOrigin, Readings: buildReadings()}
+	// wire up handlers to listen for device events
+	bitEvents := make([]bool, 2)
+	chEvents := make(chan interface{})
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go handleDomainEvents(bitEvents, chEvents, &wg, t)
+
+	newId, err := AddNewEvent(
+		evt,
+		context.Background(),
+		logger.NewMockClient(),
+		dbClientMock,
+		chEvents,
+		msgClient,
+		dataMock.NewMockDeviceClient(),
+		&config.ConfigurationStruct{
+			Writable: config.WritableInfo{
+				PersistData: false,
+			},
+		})
+
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+	if bson.IsObjectIdHex(newId) {
+		t.Errorf("unexpected bson id %s received", newId)
+	}
+
+	wg.Wait()
+	for i, val := range bitEvents {
+		if !val {
+			t.Errorf("event not received in timely fashion, index %v, TestAddEventNoPersistence", i)
 		}
 	}
 

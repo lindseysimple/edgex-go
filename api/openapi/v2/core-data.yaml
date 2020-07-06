@@ -81,8 +81,6 @@ components:
           type: string
           format: uuid
           example: "e6e8a2f4-eb14-4649-9e2b-175247911369"
-      required:
-        - requestId
     BaseResponse:
       description: "Defines basic properties which all use-case specific response DTO instances should support"
       type: object
@@ -117,7 +115,7 @@ components:
     EventCountResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'
-      description: "Returns an aggregate event count. If the deviceId property is blank then the count is applicable to all events in the database. Otherwise, the count is applicable to the specified device."
+      description: "Returns an aggregate event count in uint32 integer type. If the deviceId property is blank then the count is applicable to all events in the database. Otherwise, the count is applicable to the specified device."
       type: object
       properties:
         count:
@@ -195,25 +193,25 @@ components:
       type: object
       properties:
         memAlloc:
-          description: "Alloc is bytes of allocated heap objects."
+          description: "Alloc is bytes of allocated heap objects which is a uint64 type integer."
           type: integer
         memFrees:
-          description: "Frees is the cumulative count of heap objects freed."
+          description: "Frees is the cumulative count of heap objects freed which is a uint64 type integer."
           type: integer
         memLiveObjects:
-          description: "The number of live objects is Mallocs - Frees."
+          description: "The uint64 type integer of live objects is Mallocs - Frees."
           type: integer
         memMallocs:
-          description: "The cumulative count of heap objects allocated."
+          description: "The cumulative count of heap objects allocated which is a uint64 type integer."
           type: integer
         memSys:
-          description: "The total bytes of memory obtained from the OS."
+          description: "The total bytes of memory obtained from the OS which is a uint64 type integer."
           type: integer
         memTotalAlloc:
-          description: "Cumulative bytes allocated for heap objects."
+          description: "Cumulative bytes allocated for heap objects which is a uint64 type integer."
           type: integer
         cpuBusyAvg:
-          description: "Indicates the average level of CPU utilization"
+          description: "A uint8 type integer indicates the average level of CPU utilization"
           type: number
       required:
       - memAlloc
@@ -240,7 +238,7 @@ components:
     ReadingCountResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'
-      description: "Returns an aggregate reading count. If the deviceId property is blank then the count is applicable to all readings in the database. Otherwise, the count is applicable to the specified device."
+      description: "Returns an aggregate reading count in uint32 integer type. If the deviceId property is blank then the count is applicable to all readings in the database. Otherwise, the count is applicable to the specified device."
       type: object
       properties:
         count:
