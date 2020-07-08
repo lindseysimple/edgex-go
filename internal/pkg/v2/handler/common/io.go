@@ -1,0 +1,56 @@
+//
+// Copyright (C) 2020 IOTech Ltd
+//
+// SPDX-License-Identifier: Apache-2.0
+
+package common
+
+import (
+	"context"
+	"encoding/json"
+	"io"
+	"net/http"
+	"strings"
+
+	"github.com/edgexfoundry/edgex-go/internal/core/data/config"
+
+	"github.com/edgexfoundry/go-mod-core-contracts/clients"
+	dto "github.com/edgexfoundry/go-mod-core-contracts/v2/dtos/requests"
+)
+
+// jsonReader handles unmarshaling of a JSON request body payload
+type jsonReader struct{}
+
+// EventReader unmarshals a request body into an Event type
+type EventReader interface {
+	//Read(reader io.Reader, ctx *context.Context) ([]model.Event, error)
+	Read(reader io.Reader, ctx *context.Context) ([]dto.AddEventRequest, error)
+}
+
+// Read reads and converts the request's JSON event data into an Event struct
+func (jsonReader) Read(reader io.Reader, ctx *context.Context) (events []dto.AddEventRequest, err error) {
+	c := context.WithValue(*ctx, clients.ContentType, clients.ContentTypeJSON)
+	*ctx = c
+	var addEvents []dto.AddEventRequest
+	err = json.NewDecoder(reader).Decode(&addEvents)
+	if err != nil {
+		return nil, err
+	}
+	return addEvents, nil
+}
+
+// NewJsonReader creates a new instance of cborReader.
+func NewJsonReader() jsonReader {
+	return jsonReader{}
+}
+
+// NewRequestReader returns a BodyReader capable of processing the request body
+func NewRequestReader(request *http.Request, configuration *config.ConfigurationStruct) EventReader {
+	contentType := request.Header.Get(clients.ContentType)
+	switch strings.ToLower(contentType) {
+	case clients.ContentTypeCBOR:
+		return NewJsonReader()
+	default:
+		return NewJsonReader()
+	}
+}
