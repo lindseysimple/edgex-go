@@ -11,50 +11,22 @@ import (
 	"fmt"
 	"github.com/edgexfoundry/edgex-go/internal/pkg/correlation"
 
-	"github.com/edgexfoundry/edgex-go/internal/core/data/config"
-	"github.com/edgexfoundry/edgex-go/internal/pkg/v2/infrastructure/interfaces"
-
+	v2container "github.com/edgexfoundry/edgex-go/internal/pkg/v2/bootstrap/container"
 	"github.com/edgexfoundry/go-mod-core-contracts/clients"
-	"github.com/edgexfoundry/go-mod-core-contracts/clients/logger"
-	"github.com/edgexfoundry/go-mod-core-contracts/clients/metadata"
 	model "github.com/edgexfoundry/go-mod-core-contracts/v2/models"
 
-	"github.com/edgexfoundry/go-mod-messaging/messaging"
 	msgTypes "github.com/edgexfoundry/go-mod-messaging/pkg/types"
 )
 
-func AddNewEvent(
-	e model.Event, ctx context.Context,
-	lc logger.LoggingClient,
-	dbClient interfaces.DBClient,
-	chEvents chan<- interface{},
-	msgClient messaging.MessageClient,
-	mdc metadata.DeviceClient,
-	configuration *config.ConfigurationStruct) (string, error) {
+// The AddEvent function accepts the new event model from the controller functions
+// and invokes addEvent function in the infrustructure layer
+func AddEvent(e model.Event, ctx context.Context) (string, error) {
+	configuration := v2container.RegistryClients.ConfigClient
+	dbClient := v2container.RegistryClients.DBClient
 
-	err := checkDevice(e.Device, ctx, mdc, configuration)
+	err := checkDevice(e.Device, ctx)
 	if err != nil {
 		return "", err
-	}
-
-	if configuration.Writable.ValidateCheck {
-		lc.Debug("Validation enabled, parsing events")
-		//for reading := range e.Readings {
-		//	// Check value descriptor
-		//	name := e.Readings[reading].Name
-		//	vd, err := dbClient.ValueDescriptorByName(name)
-		//	if err != nil {
-		//		if err == db.ErrNotFound {
-		//			return "", errors.NewErrValueDescriptorNotFound(name)
-		//		} else {
-		//			return "", err
-		//		}
-		//	}
-		//	err = isValidValueDescriptor(vd, e.Readings[reading])
-		//	if err != nil {
-		//		return "", err
-		//	}
-		//}
 	}
 
 	// Add the event and readings to the database
@@ -64,22 +36,22 @@ func AddNewEvent(
 			return "", err
 		}
 		e.Id = id
+		//savedEvent, err := dbClient.EventById(id)
+		//if err == nil {
+		//	e = savedEvent
+		//}
 	}
 
-	putEventOnQueue(e, ctx, lc, msgClient, configuration) // Push event to message bus for App Services to consume
-	chEvents <- DeviceLastReported{e.Device}              // update last reported connected (device)
-	chEvents <- DeviceServiceLastReported{e.Device}       // update last reported connected (device service)
+	putEventOnQueue(e, ctx) // Push event to message bus for App Services to consume
 
 	return e.Id, nil
 }
 
 // Put event on the message queue to be processed by the rules engine
-func putEventOnQueue(
-	evt model.Event,
-	ctx context.Context,
-	lc logger.LoggingClient,
-	msgClient messaging.MessageClient,
-	configuration *config.ConfigurationStruct) {
+func putEventOnQueue(evt model.Event, ctx context.Context) {
+	lc := v2container.RegistryClients.LoggingClient
+	msgClient := v2container.RegistryClients.MessageClient
+	configuration := v2container.RegistryClients.ConfigClient
 
 	lc.Info("Putting event on message queue")
 

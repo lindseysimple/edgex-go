@@ -41,20 +41,11 @@ func addEvent(conn redis.Conn, e model.Event) (id string, err error) {
 	if e.Checksum != "" {
 		_ = conn.Send("ZADD", EventsCollection+":checksum:"+e.Checksum, 0, e.Id)
 	}
-
+	// add reading ids as sorted set under each event id
 	rids := make([]interface{}, len(e.Readings)*2+1)
 	rids[0] = EventsCollection + ":readings:" + e.Id
 	for i, r := range e.Readings {
-		newReading := r.(model.SimpleReading)
-		newReading.Created = e.Created
-		newReading.Device = e.Device
-		if newReading.Id != "" {
-			_, err = uuid.Parse(newReading.Id)
-			if err != nil {
-				return "", ErrInvalidObjectId
-			}
-		}
-		id, err = addReading(conn, false, newReading)
+		id, err = addReading(conn, r)
 		if err != nil {
 			return id, err
 		}

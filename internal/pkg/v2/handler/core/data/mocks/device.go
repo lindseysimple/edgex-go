@@ -23,6 +23,7 @@ import (
 const testDeviceName string = "Test Device"
 
 // NewMockDeviceClient creates a new mock DeviceClient which has some general mocking behavior defined.
+// will modify this function once core-metadata V2 Device API is available
 func NewMockDeviceClient() *mocks.DeviceClient {
 	client := &mocks.DeviceClient{}
 

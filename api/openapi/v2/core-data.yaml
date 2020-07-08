@@ -988,6 +988,37 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /reading/count/device/{deviceId}:
+    parameters:
+      - $ref: '#/components/parameters/correlatedRequestHeader'
+      - name: deviceId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: "Uniquely identifies a given device"
+    get:
+      summary: "Return a count of all of readings currently stored in the database, sourced from the specified device."
+      responses:
+        '200':
+          description: "OK"
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/correlatedResponseHeader'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadingCountResponse'
+        '500':
+          description: "An unexpected error occurred on the server"
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/correlatedResponseHeader'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /reading/id/{id}:
     parameters:
     - $ref: '#/components/parameters/correlatedRequestHeader'

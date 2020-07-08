@@ -8,15 +8,13 @@ package data
 import (
 	"context"
 
-	"github.com/edgexfoundry/edgex-go/internal/core/data/config"
-	"github.com/edgexfoundry/go-mod-core-contracts/clients/metadata"
+	v2container "github.com/edgexfoundry/edgex-go/internal/pkg/v2/bootstrap/container"
 )
 
-func checkDevice(
-	device string,
-	ctx context.Context,
-	mdc metadata.DeviceClient,
-	configuration *config.ConfigurationStruct) error {
+// This function will be updated when CheckDevice in v2 core-metadata is available
+func checkDevice(device string, ctx context.Context) error {
+	mdc := v2container.RegistryClients.MetadataClient
+	configuration := v2container.RegistryClients.ConfigClient
 
 	if configuration.Writable.MetaDataCheck {
 		_, err := mdc.CheckForDevice(ctx, device)

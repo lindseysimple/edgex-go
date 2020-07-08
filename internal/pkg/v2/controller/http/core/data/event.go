@@ -25,10 +25,6 @@ func EventController(
 	// retrieve all the registry clients
 	httpErrorHandler := v2container.RegistryClients.ErrorHandlerClient
 	lc := v2container.RegistryClients.LoggingClient
-	dbClient := v2container.RegistryClients.DBClient
-	chEvents := v2container.RegistryClients.EventChan
-	msgClient := v2container.RegistryClients.MessageClient
-	mdc := v2container.RegistryClients.MetadataClient
 	configuration := v2container.RegistryClients.ConfigClient
 
 	ctx := r.Context()
@@ -44,7 +40,7 @@ func EventController(
 	// map Event models to AddEventResponse DTOs
 	var addResponses []respDTO.AddEventResponse
 	for i, e := range events {
-		newId, err := handler.AddNewEvent(e, ctx, lc, dbClient, chEvents, msgClient, mdc, configuration)
+		newId, err := handler.AddEvent(e, ctx)
 
 		var addEventResponse respDTO.AddEventResponse
 		// get the requestID from AddEventRequestDTO
@@ -55,7 +51,7 @@ func EventController(
 				BaseResponse: commonDTO.BaseResponse{
 					RequestID:  reqId,
 					Message:    "Add events successfully",
-					StatusCode: http.StatusAccepted,
+					StatusCode: http.StatusCreated,
 				},
 				ID: newId,
 			}
