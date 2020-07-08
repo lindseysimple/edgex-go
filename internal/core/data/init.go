@@ -127,6 +127,7 @@ func (b *Bootstrap) BootstrapHandler(ctx context.Context, wg *sync.WaitGroup, _ 
 		},
 	})
 
+	// initialize service containers for bootstrap in v2 API
 	bootstrapContainer.BootstrapContainer = dic
 	bootstrapContainer.Init()
 
