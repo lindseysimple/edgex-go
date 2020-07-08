@@ -59,3 +59,31 @@ func addEvent(conn redis.Conn, e model.Event) (id string, err error) {
 	_, err = conn.Do("EXEC")
 	return e.Id, err
 }
+
+func eventByID(conn redis.Conn, id string) (event model.Event, err error) {
+	obj, err := redis.Values(conn.Do("HGETALL", EventsCollection+":id:"+id))
+	if err == redis.ErrNil {
+		return event, ErrNotFound
+	}
+	if err != nil {
+		return event, err
+	}
+
+	redis.ScanStruct(obj, &event)
+	values, err := redis.Values(conn.Do("zrange", EventsCollection+":readings:"+id, 0, -1))
+	var readingIDs []string
+	redis.ScanSlice(values, &readingIDs)
+	var readings = make([]model.Reading, len(readingIDs))
+	for i, rid := range readingIDs {
+		var s model.SimpleReading
+		if r, err := redis.Values(conn.Do("HGETALL", ReadingsCollection+":id:"+rid)); err == nil {
+			redis.ScanStruct(r, &s)
+			readings[i] = s
+		} else {
+			return event, err
+		}
+	}
+
+	event.Readings = readings
+	return event, err
+}

@@ -107,3 +107,15 @@ func (c *CoreDataClient) AddEvent(e model.Event) (id string, err error) {
 	}
 	return addEvent(conn, e)
 }
+
+func (c *CoreDataClient) GetEventById(id string) (event model.Event, err error) {
+	conn := c.Pool.Get()
+	defer conn.Close()
+
+	event, err = eventByID(conn, id)
+	if err != nil {
+		return event, err
+	}
+
+	return event, nil
+}

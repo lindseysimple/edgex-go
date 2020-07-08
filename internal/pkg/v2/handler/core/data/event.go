@@ -36,10 +36,10 @@ func AddEvent(e model.Event, ctx context.Context) (string, error) {
 			return "", err
 		}
 		e.Id = id
-		//savedEvent, err := dbClient.EventById(id)
-		//if err == nil {
-		//	e = savedEvent
-		//}
+		savedEvent, err := dbClient.GetEventById(id)
+		if err == nil {
+			e = savedEvent
+		}
 	}
 
 	putEventOnQueue(e, ctx) // Push event to message bus for App Services to consume
