@@ -31,7 +31,11 @@ import (
 	"github.com/edgexfoundry/edgex-go/internal/core/metadata/container"
 	"github.com/edgexfoundry/edgex-go/internal/core/metadata/infrastructure/interfaces"
 	"github.com/edgexfoundry/edgex-go/internal/pkg/correlation"
+	"github.com/edgexfoundry/edgex-go/internal/pkg/utils"
 )
+
+// the suggested minimum duration string for auto event interval
+const minAutoEventInterval = "1ms"
 
 // The AddDevice function accepts the new device model from the controller function
 // and then invokes AddDevice function of infrastructure layer to add new device
@@ -62,6 +66,16 @@ func AddDevice(d models.Device, ctx context.Context, dic *di.Container) (id stri
 		addedDevice.Id,
 		correlation.FromContext(ctx),
 	)
+
+	// If device is successfully created, check each AutoEvent interval value and display a warning if it's smaller than the suggested 10ms value
+	for _, autoEvent := range d.AutoEvents {
+		valid, err := utils.CheckDuration(autoEvent.Interval, minAutoEventInterval)
+		if err != nil {
+			lc.Warnf("failed to check auto event interval: %v", err)
+		} else if !valid {
+			lc.Warnf("the interval value '%s' is smaller than the suggested value '%s', which might cause abnormal CPU increase", autoEvent.Interval, minAutoEventInterval)
+		}
+	}
 
 	deviceDTO := dtos.FromDeviceModelToDTO(addedDevice)
 	go publishSystemEvent(common.DeviceSystemEventType, common.SystemEventActionAdd, d.ServiceName, deviceDTO, ctx, dic)
@@ -160,6 +174,16 @@ func PatchDevice(dto dtos.UpdateDevice, ctx context.Context, dic *di.Container) 
 	err = dbClient.UpdateDevice(device)
 	if err != nil {
 		return errors.NewCommonEdgeXWrapper(err)
+	}
+
+	// If device is successfully updated, check each AutoEvent interval value and display a warning if it's smaller than the suggested 10ms value
+	for _, autoEvent := range device.AutoEvents {
+		valid, err := utils.CheckDuration(autoEvent.Interval, minAutoEventInterval)
+		if err != nil {
+			lc.Warnf("failed to check auto event interval: %v", err)
+		} else if !valid {
+			lc.Warnf("the interval value '%s' is smaller than the suggested value '%s', which might cause abnormal CPU increase", autoEvent.Interval, minAutoEventInterval)
+		}
 	}
 
 	lc.Debugf(
