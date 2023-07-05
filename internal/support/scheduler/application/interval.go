@@ -46,12 +46,7 @@ func AddInterval(interval models.Interval, ctx context.Context, dic *di.Containe
 		correlation.FromContext(ctx))
 
 	// If interval is successfully created, check the interval value and display a warning if it's smaller than the suggested 10ms value
-	valid, err := utils.CheckDuration(interval.Interval, minSchedulerInterval)
-	if err != nil {
-		lc.Warnf("failed to check scheduler interval: %v", err)
-	} else if !valid {
-		lc.Warnf("the interval value '%s' is smaller than the suggested value '%s', which might cause abnormal CPU increase", interval.Interval, minSchedulerInterval)
-	}
+	utils.CheckMinInterval(interval.Interval, minSchedulerInterval, lc)
 
 	return addedInterval.Id, nil
 }
@@ -129,12 +124,7 @@ func PatchInterval(dto dtos.UpdateInterval, ctx context.Context, dic *di.Contain
 	}
 
 	// If interval is successfully updated, check the interval value and display a warning if it's smaller than the suggested 10ms value
-	valid, err := utils.CheckDuration(interval.Interval, minSchedulerInterval)
-	if err != nil {
-		lc.Warnf("failed to check scheduler interval: %v", err)
-	} else if !valid {
-		lc.Warnf("the interval value '%s' is smaller than the suggested value '%s', which might cause abnormal CPU increase", interval.Interval, minSchedulerInterval)
-	}
+	utils.CheckMinInterval(interval.Interval, minSchedulerInterval, lc)
 
 	lc.Debugf(
 		"Interval patched on DB successfully. Correlation-ID: %s ",

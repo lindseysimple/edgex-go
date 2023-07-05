@@ -6,27 +6,29 @@
 package utils
 
 import (
-	"fmt"
 	"time"
 
-	"github.com/edgexfoundry/go-mod-core-contracts/v3/errors"
+	"github.com/edgexfoundry/go-mod-core-contracts/v3/clients/logger"
 )
 
-// CheckDuration parses the ISO 8601 time duration string to Duration type
+// CheckMinInterval parses the ISO 8601 time duration string to Duration type
 // and evaluates if the duration value is smaller than the suggested minimum duration string
-func CheckDuration(value string, min string) (bool, errors.EdgeX) {
+func CheckMinInterval(value string, min string, lc logger.LoggingClient) bool {
 	valueDuration, err := time.ParseDuration(value)
 	if err != nil {
-		return false, errors.NewCommonEdgeX(errors.KindServerError, fmt.Sprintf("failed to parse the interval duration string %s to a duration time value", value), err)
+		lc.Errorf("failed to parse the interval duration string %s to a duration time value: %v", value, err)
+		return false
 	}
 	minDuration, err := time.ParseDuration(min)
 	if err != nil {
-		return false, errors.NewCommonEdgeX(errors.KindServerError, fmt.Sprintf("failed to parse the minimum duration string %s to a duration time value", min), err)
+		lc.Errorf("failed to parse the  minimum duration string %s to a duration time value: %v", value, err)
+		return false
 	}
 
 	if valueDuration < minDuration {
 		// the duration value is smaller than the min
-		return false, nil
+		lc.Warnf("the interval value '%s' is smaller than the suggested value '%s', which might cause abnormal CPU increase", valueDuration, minDuration)
+		return false
 	}
-	return true, nil
+	return true
 }

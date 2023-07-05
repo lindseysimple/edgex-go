@@ -69,12 +69,7 @@ func AddDevice(d models.Device, ctx context.Context, dic *di.Container) (id stri
 
 	// If device is successfully created, check each AutoEvent interval value and display a warning if it's smaller than the suggested 10ms value
 	for _, autoEvent := range d.AutoEvents {
-		valid, err := utils.CheckDuration(autoEvent.Interval, minAutoEventInterval)
-		if err != nil {
-			lc.Warnf("failed to check auto event interval: %v", err)
-		} else if !valid {
-			lc.Warnf("the interval value '%s' is smaller than the suggested value '%s', which might cause abnormal CPU increase", autoEvent.Interval, minAutoEventInterval)
-		}
+		utils.CheckMinInterval(autoEvent.Interval, minAutoEventInterval, lc)
 	}
 
 	deviceDTO := dtos.FromDeviceModelToDTO(addedDevice)
@@ -178,12 +173,7 @@ func PatchDevice(dto dtos.UpdateDevice, ctx context.Context, dic *di.Container) 
 
 	// If device is successfully updated, check each AutoEvent interval value and display a warning if it's smaller than the suggested 10ms value
 	for _, autoEvent := range device.AutoEvents {
-		valid, err := utils.CheckDuration(autoEvent.Interval, minAutoEventInterval)
-		if err != nil {
-			lc.Warnf("failed to check auto event interval: %v", err)
-		} else if !valid {
-			lc.Warnf("the interval value '%s' is smaller than the suggested value '%s', which might cause abnormal CPU increase", autoEvent.Interval, minAutoEventInterval)
-		}
+		utils.CheckMinInterval(autoEvent.Interval, minAutoEventInterval, lc)
 	}
 
 	lc.Debugf(
